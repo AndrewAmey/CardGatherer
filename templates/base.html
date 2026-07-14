@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Card Gatherer{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Metamorphous&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header>
+    <nav>
+      <a class="brand" href="{{ url_for('home') }}">Card Gatherer</a>
+      <button class="menu-toggle" aria-label="menu" onclick="document.body.classList.toggle('nav-open')">☰</button>
+      <ul class="nav-links">
+        <li><a href="{{ url_for('home') }}">Home</a></li>
+        <li><a href="{{ url_for('collection_browse') }}">Collection</a></li>
+        <li><a href="{{ url_for('treasure_hunt') }}">Treasure Hunt</a></li>
+        <li><a href="{{ url_for('locations_list') }}">Locations</a></li>
+        <li><a href="{{ url_for('prices_page') }}">Prices</a></li>
+        <li><a href="{{ url_for('import_page') }}">Import</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flashes">
+        {% for category, msg in messages %}
+          <div class="flash flash-{{ category }}">{{ msg }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer>
+    <small>Card Gatherer · card data from <a href="https://scryfall.com" target="_blank">Scryfall</a></small>
+  </footer>
+</body>
+</html>

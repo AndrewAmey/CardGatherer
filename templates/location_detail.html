@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{{ loc.name }} — Card Gatherer{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('locations_list') }}">← All locations</a></p>
+<h1>{{ loc.name }} <small class="muted">({{ loc.kind or '—' }})</small></h1>
+
+<p class="summary">{{ rows | length }} unique · {{ total }} cards · {{ value | usd }}</p>
+
+{% if rows %}
+<table class="data-table">
+  <thead>
+    <tr><th></th><th>Name</th><th>Set</th><th>#</th><th>Fin</th><th>Qty</th><th class="num">USD</th><th>Move to…</th></tr>
+  </thead>
+  <tbody>
+  {% for r in rows %}
+    <tr>
+      <td>
+        {% if r.image_uri %}
+          <img class="thumb" src="{{ r.image_uri }}" alt="">
+        {% endif %}
+      </td>
+      <td><a href="{{ url_for('card_detail', name=r.name) }}">{{ r.name }}</a></td>
+      <td>{{ r.set_code | upper }}</td>
+      <td>{{ r.collector_number }}</td>
+      <td>{{ r.finish }}</td>
+      <td>{{ r.quantity }}</td>
+      <td class="num">
+        {% if r.finish == 'foil' %}{{ r.price_usd_foil | usd }}{% else %}{{ r.price_usd | usd }}{% endif %}
+      </td>
+      <td>
+        <form method="post" action="{{ url_for('locations_move') }}" style="display:inline">
+          <input type="hidden" name="scryfall_id" value="{{ r.scryfall_id }}">
+          <input type="hidden" name="finish" value="{{ r.finish }}">
+          <input type="hidden" name="src_id" value="{{ loc.id }}">
+          <input type="number" name="quantity" value="{{ r.quantity }}" min="1" max="{{ r.quantity }}" style="width:55px">
+          <select name="dst_id">
+            {% for other in all_locations if other.id != loc.id %}
+              <option value="{{ other.id }}">{{ other.name }}</option>
+            {% endfor %}
+          </select>
+          <button class="btn small" type="submit">Move</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="empty">No cards in {{ loc.name }} yet.</p>
+{% endif %}
+{% endblock %}

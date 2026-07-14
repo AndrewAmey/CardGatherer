@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Prices — Card Gatherer{% endblock %}
+{% block content %}
+<h1>Prices</h1>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">Total cards</div>
+    <div class="stat-value">{{ "{:,}".format(value.total_cards) }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Total USD</div>
+    <div class="stat-value">{{ value.total_usd | usd }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Priced</div>
+    <div class="stat-value">{{ value.priced_cards }}</div>
+    <div class="stat-foot muted">{{ value.unpriced_cards }} unpriced</div>
+  </div>
+</div>
+
+<div class="quick-actions">
+  <form method="post" action="{{ url_for('prices_refresh') }}" style="display:inline">
+    <button class="btn primary" type="submit">↻ Refresh all from Scryfall</button>
+  </form>
+  <form method="post" action="{{ url_for('prices_snapshot') }}" style="display:inline">
+    <button class="btn" type="submit">📸 Snapshot current value</button>
+  </form>
+</div>
+
+<h2>Snapshot history</h2>
+{% if history %}
+<table class="data-table">
+  <thead>
+    <tr><th>Date</th><th class="num">USD</th><th class="num">EUR</th><th class="num">Cards</th><th class="num">Unique</th></tr>
+  </thead>
+  <tbody>
+    {% for h in history %}
+    <tr>
+      <td>{{ h.snapshot_date[:19].replace('T', ' ') }}</td>
+      <td class="num">{{ h.total_usd | usd }}</td>
+      <td class="num">€{{ "%.2f" | format(h.total_eur or 0) }}</td>
+      <td class="num">{{ h.card_count or 0 }}</td>
+      <td class="num">{{ h.unique_count or 0 }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="empty">No snapshots yet. Take one to start tracking value over time.</p>
+{% endif %}
+{% endblock %}

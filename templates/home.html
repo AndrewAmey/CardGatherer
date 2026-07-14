@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Card Gatherer{% endblock %}
+{% block content %}
+<div class="home-hero">
+  <h1 class="brand-mark">Card Gatherer</h1>
+  <p class="tagline">Search your collection</p>
+
+  <form class="home-search" method="get" action="{{ url_for('collection_browse') }}">
+    <input type="search" name="name" placeholder="Card name…" autofocus enterkeyhint="search"
+           aria-label="Search your collection by card name">
+    <button class="btn primary" type="submit">Search</button>
+  </form>
+
+  <div class="home-actions">
+    <a class="btn primary" href="{{ url_for('treasure_hunt') }}">Start a treasure hunt</a>
+    <a class="btn" href="{{ url_for('collection_add') }}">Add a card</a>
+    <a class="btn" href="{{ url_for('import_page') }}">Import CSV</a>
+  </div>
+</div>
+
+{% if showcase %}
+<div class="card-shelf-wrap">
+  <p class="card-shelf-label">From your collection</p>
+  {# The card list appears twice in the track; animating from -50% to 0
+     makes the cards drift left-to-right and loop back seamlessly. #}
+  <div class="card-shelf">
+    <div class="card-shelf-track" style="--shelf-count: {{ showcase|length }}">
+      {% for c in showcase %}
+        <a href="{{ url_for('card_detail', name=c.name) }}">
+          <img src="{{ c.image_uri }}" alt="{{ c.name }}" loading="lazy">
+          <span class="shelf-name">{{ c.name }}</span>
+        </a>
+      {% endfor %}
+      {% for c in showcase %}
+        <a class="shelf-clone" href="{{ url_for('card_detail', name=c.name) }}" aria-hidden="true" tabindex="-1">
+          <img src="{{ c.image_uri }}" alt="" loading="lazy">
+          <span class="shelf-name">{{ c.name }}</span>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% else %}
+<p class="empty">The vault is empty. <a href="{{ url_for('import_page') }}">Import a Manabox CSV</a> or <a href="{{ url_for('collection_add') }}">add your first card</a>.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}{{ hunt.title }} — Card Gatherer{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('treasure_hunt') }}">← All hunts</a></p>
+
+<form class="hunt-title-form" method="post"
+      action="{{ url_for('treasure_hunt_rename', hunt_id=hunt.id) }}">
+  <input type="text" name="title" value="{{ hunt.title }}" size="32" aria-label="Hunt name">
+  <button class="btn small" type="submit">Rename</button>
+</form>
+
+<div class="hunt-summary">
+  <span><strong>{{ plan.totals.cards_requested }}</strong> requested</span>
+  <span><strong>{{ plan.totals.cards_pulled }}</strong> pullable</span>
+  <span>from <strong>{{ plan.totals.locations_to_visit }}</strong> location(s)</span>
+  <span class="muted">· <strong>{{ remaining_cards }}</strong> still needed
+    {%- if remaining_unique %} ({{ remaining_unique }} unique){% endif %}</span>
+</div>
+
+<div class="hunt-actions">
+  <a class="btn" href="{{ url_for('treasure_hunt_export', hunt_id=hunt.id) }}">↓ Export still-needed list</a>
+  <form method="post" action="{{ url_for('treasure_hunt_delete', hunt_id=hunt.id) }}" style="display:inline">
+    <button class="btn danger" type="submit"
+            onclick="return confirm('Delete this hunt? Pulled cards stay removed from the collection; this only deletes the saved list.')">
+      Delete hunt
+    </button>
+  </form>
+</div>
+
+<p class="muted small">Tap <em>Pulled it</em> as you physically grab each card —
+it's removed from the collection and remembered if you come back later.</p>
+
+{% for loc, cards in plan.by_location.items() %}
+  <section class="hunt-location">
+    <h2>{{ loc }} <small class="muted">— {{ cards | sum(attribute='qty_to_take') }} cards</small></h2>
+    <div class="card-grid">
+      {% for c in cards %}
+        <div class="hunt-card-tile{% if c.pulled %} pulled{% endif %}">
+          {% if c.image_uri %}
+            <img src="{{ c.image_uri }}" alt="{{ c.name }}">
+          {% else %}
+            <div class="no-image">no image</div>
+          {% endif %}
+          {% if c.pulled %}<div class="pulled-stamp">✓ Pulled</div>{% endif %}
+          <div class="hunt-card-info">
+            <div class="qty-badge">{{ c.qty_to_take }}×</div>
+            <div class="hunt-card-name">{{ c.name }}</div>
+            <div class="muted small">{{ c.set_code | upper }} #{{ c.collector_number }} · {{ c.finish }}</div>
+            {% if c.shortfall %}
+              <div class="shortfall">⚠ short {{ c.shortfall }} (need {{ c.needed }})</div>
+            {% endif %}
+            {% if not c.pulled %}
+              <form method="post" action="{{ url_for('treasure_hunt_pull', hunt_id=hunt.id) }}" class="pull-form">
+                <input type="hidden" name="key" value="{{ c.key }}">
+                <button class="btn small primary" type="submit">✓ Pulled it</button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+{% endfor %}
+
+{% if plan.missing %}
+<section class="hunt-location">
+  <h2>Not in your collection</h2>
+  <ul class="missing-list">
+    {% for m in plan.missing %}
+      <li>
+        {{ m.needed }}× <a href="{{ url_for('card_detail', name=m.name) }}">{{ m.name }}</a>
+        {% if m.owned_elsewhere %}
+          <span class="muted small">— {{ m.owned_elsewhere }} in deck boxes (unchecked "Also search deck boxes")</span>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% set ns = namespace(partials=[]) %}
+{% for p in plan.partial %}
+  {% if p.total_owned > p.best_qty %}
+    {% set ns.partials = ns.partials + [p] %}
+  {% endif %}
+{% endfor %}
+{% if ns.partials %}
+<section class="hunt-location">
+  <h2>Spread across locations</h2>
+  <p class="muted small">The plan grabs from the location with the most copies — these cards have more elsewhere too.</p>
+  <ul>
+    {% for p in ns.partials %}
+      <li><strong>{{ p.name }}</strong>: pulled {{ p.best_qty }} from {{ p.best_location }}, own {{ p.total_owned }} total</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Import Manabox CSV — Card Gatherer{% endblock %}
+{% block content %}
+<h1>Import Manabox CSV</h1>
+
+<form method="post" action="{{ url_for('import_page') }}" enctype="multipart/form-data" class="big-form">
+  <p>
+    <label>CSV file</label>
+    <input type="file" name="csvfile" accept=".csv" required>
+  </p>
+
+  <fieldset>
+    <legend>Destination container</legend>
+    <p>
+      <label>
+        <input type="radio" name="location_choice" value="existing" checked
+               onchange="document.getElementById('new-loc').style.display='none'">
+        Use existing:
+      </label>
+      <select name="location_id">
+        {% for l in locations %}
+          <option value="{{ l.id }}">{{ l.name }}</option>
+        {% endfor %}
+      </select>
+    </p>
+    <p>
+      <label>
+        <input type="radio" name="location_choice" value="new"
+               onchange="document.getElementById('new-loc').style.display='block'">
+        Create new location:
+      </label>
+    </p>
+    <div id="new-loc" style="display:none; margin-left:1.5em">
+      <input type="text" name="new_location_name" placeholder="e.g. DMU Box">
+      <select name="new_location_kind">
+        {% for k in kinds %}
+          <option value="{{ k }}" {% if k == 'box' %}selected{% endif %}>{{ k }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </fieldset>
+
+  <p>
+    <button class="btn primary" type="submit">Import</button>
+  </p>
+</form>
+
+<details class="help">
+  <summary>What gets imported</summary>
+  <p>The importer uses each row's <code>Scryfall ID</code> to add cards by exact printing, and honors the <code>Foil</code> column exactly as Manabox labels each card. Ignored columns: <code>Set name</code>, <code>Rarity</code>, <code>ManaBox ID</code>, <code>Purchase price</code>, <code>Misprint</code>, <code>Altered</code>, <code>Condition</code>, <code>Language</code>, <code>Purchase price currency</code>, <code>Added</code>.</p>
+  <p>Cards not already in the local cache are fetched from Scryfall in bulk (up to 75 per request).</p>
+</details>
+{% endblock %}

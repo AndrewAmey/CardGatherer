@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Mass Add — Card Gatherer{% endblock %}
+{% block content %}
+<h1>Mass Add</h1>
+<p>Add multiple cards at once. Each row is looked up on Scryfall and added to the chosen location.</p>
+
+<form method="post" action="{{ url_for('mass_add') }}" id="mass-form">
+  <table class="data-table" id="mass-table">
+    <thead>
+      <tr>
+        <th>Card name</th>
+        <th>Qty</th>
+        <th>Finish</th>
+        <th>Location</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="mass-rows">
+      {% for i in range(5) %}
+      <tr class="mass-row">
+        <td><input type="text" name="name" placeholder="Lightning Bolt" style="width:100%"></td>
+        <td><input type="number" name="quantity" value="1" min="1" style="width:60px"></td>
+        <td>
+          <select name="finish">
+            <option value="nonfoil">Nonfoil</option>
+            <option value="foil">Foil</option>
+          </select>
+        </td>
+        <td>
+          <select name="location_id">
+            {% for l in locations %}
+              <option value="{{ l.id }}">{{ l.name }}</option>
+            {% endfor %}
+          </select>
+        </td>
+        <td>
+          <button type="button" class="btn small danger" onclick="removeRow(this)">✕</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div style="display:flex; gap:0.5rem; margin:1rem 0; align-items:center">
+    <button type="button" class="btn" id="add-row-btn">+ Add row</button>
+    <button type="submit" class="btn primary">Add to collection</button>
+    <span class="muted small">Cards not found by name will be reported after submission.</span>
+  </div>
+</form>
+
+{% if results %}
+  <h2>Added successfully</h2>
+  <table class="data-table">
+    <thead>
+      <tr><th>Name</th><th>Set</th><th>#</th><th>Qty</th><th>Finish</th><th>Location</th></tr>
+    </thead>
+    <tbody>
+      {% for r in results %}
+      <tr>
+        <td><a href="{{ url_for('card_detail', name=r.name) }}">{{ r.name }}</a></td>
+        <td>{{ r.set_code }}</td>
+        <td>{{ r.collector_number }}</td>
+        <td>{{ r.qty }}</td>
+        <td>{{ r.finish }}</td>
+        <td>{{ r.location }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endif %}
+
+<script>
+// Template row HTML — cloned each time the user adds a row
+var rowTemplate = document.querySelector('.mass-row').cloneNode(true);
+// Clear values in the template
+rowTemplate.querySelectorAll('input[type="text"]').forEach(function(el) { el.value = ''; });
+rowTemplate.querySelectorAll('input[type="number"]').forEach(function(el) { el.value = '1'; });
+
+document.getElementById('add-row-btn').addEventListener('click', function() {
+  var newRow = rowTemplate.cloneNode(true);
+  document.getElementById('mass-rows').appendChild(newRow);
+  newRow.querySelector('input[type="text"]').focus();
+});
+
+function removeRow(btn) {
+  var rows = document.querySelectorAll('.mass-row');
+  if (rows.length > 1) {
+    btn.closest('tr').remove();
+  } else {
+    // Clear the last row instead of deleting it
+    var row = btn.closest('tr');
+    row.querySelector('input[type="text"]').value = '';
+    row.querySelector('input[type="number"]').value = '1';
+  }
+}
+
+// Submit on Enter in a name field — moves to next row or adds one
+document.getElementById('mass-form').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && e.target.name === 'name') {
+    e.preventDefault();
+    var rows = Array.from(document.querySelectorAll('.mass-row'));
+    var currentRow = e.target.closest('tr');
+    var idx = rows.indexOf(currentRow);
+    if (idx < rows.length - 1) {
+      rows[idx + 1].querySelector('input[type="text"]').focus();
+    } else {
+      document.getElementById('add-row-btn').click();
+    }
+  }
+});
+</script>
+{% endblock %}

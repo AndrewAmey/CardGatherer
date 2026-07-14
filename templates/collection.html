@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Collection — Card Gatherer{% endblock %}
+{% block content %}
+<h1>Collection</h1>
+
+<form class="filter-bar" method="get" id="filter-form">
+  <input type="text" name="name" placeholder="Card name…" value="{{ filters.name }}">
+  <input type="text" name="set" placeholder="Set" value="{{ filters.set }}" size="6">
+  <input type="text" name="colors" placeholder="Colors (WUBRG)" value="{{ filters.colors }}" size="8">
+  <select name="location_id">
+    <option value="">Any location</option>
+    {% for l in locations %}
+      <option value="{{ l.id }}" {% if filters.location_id == l.id|string %}selected{% endif %}>{{ l.name }}</option>
+    {% endfor %}
+  </select>
+  <button class="btn primary" type="submit">Filter</button>
+  <a class="btn" href="{{ url_for('collection_browse') }}">Reset</a>
+</form>
+
+<div class="collection-toolbar">
+  <span class="summary" style="margin:0">{{ total_unique }} unique · {{ total_cards }} total cards</span>
+  <div class="sort-controls">
+    <span class="muted small">Sort:</span>
+    {% set sort_opts = [('name','Name'),('price','Price'),('quantity','Qty'),('color','Color')] %}
+    {% for key, label in sort_opts %}
+      {% set is_active = sort_by == key %}
+      {% set new_dir = 'desc' if (is_active and sort_dir == 'asc') else 'asc' %}
+      <a class="sort-btn {% if is_active %}active{% endif %}"
+         href="?name={{ filters.name }}&set={{ filters.set }}&colors={{ filters.colors }}&location_id={{ filters.location_id }}&sort_by={{ key }}&sort_dir={{ new_dir }}">
+        {{ label }}
+        {% if is_active %}{{ '↑' if sort_dir == 'asc' else '↓' }}{% endif %}
+      </a>
+    {% endfor %}
+  </div>
+  <div class="toolbar-actions">
+    <a class="btn small" href="{{ url_for('mass_add') }}">+ Mass add</a>
+    <a class="btn small" href="{{ url_for('collection_add') }}">+ Add card</a>
+    <a class="btn small" href="{{ url_for('collection_export') }}">↓ Export CSV</a>
+  </div>
+</div>
+
+{% if grouped %}
+<div class="card-grid">
+  {% for key, entries in grouped.items() %}
+    {% set first = entries[0] %}
+    {% set img = (entries | selectattr('image_uri') | map(attribute='image_uri') | first) %}
+    {% set total_qty = entries | sum(attribute='quantity') %}
+    {% set display_price = first.price_usd_foil if first.finish == 'foil' else first.price_usd %}
+    <a class="card-tile" href="{{ url_for('card_detail', name=first.name) }}">
+      {% if img %}
+        <img class="card-tile-img" src="{{ img }}" alt="{{ first.name }}" loading="lazy">
+      {% else %}
+        <div class="card-tile-img card-tile-noimg">no image</div>
+      {% endif %}
+      {% if display_price %}
+        <div class="card-tile-price">{{ display_price | usd }}</div>
+      {% endif %}
+      <div class="card-tile-name">{{ first.name }}</div>
+      <div class="card-tile-meta">
+        {{ total_qty }}× · {{ first.set_code | upper }} #{{ first.collector_number }}
+        {% if entries | length > 1 %} · {{ entries | length }} stacks{% endif %}
+      </div>
+      <div class="card-tile-locations">
+        {% for e in entries %}
+          <span class="loc-chip">{{ e.location_name }} · {{ e.quantity }}{% if e.finish == 'foil' %} foil{% endif %}</span>
+        {% endfor %}
+      </div>
+    </a>
+  {% endfor %}
+</div>
+{% else %}
+<p class="empty">No cards match those filters.</p>
+{% endif %}
+{% endblock %}

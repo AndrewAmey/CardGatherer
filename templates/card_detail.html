@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}{{ name }} — Card Gatherer{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('collection_browse') }}">← Collection</a></p>
+<h1>{{ name }}</h1>
+
+{% if rows %}
+  {% set hero_img = rows | selectattr('image_uri') | map(attribute='image_uri') | first %}
+  <div class="card-detail-layout">
+    {% if hero_img %}
+      <img class="card-hero" src="{{ hero_img }}" alt="{{ name }}">
+    {% endif %}
+    <div class="card-detail-body">
+      <h2>Your copies</h2>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Qty</th><th>Set</th><th>#</th><th>Finish</th>
+            <th>Location</th><th class="num">Price</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr>
+            <td>{{ r.quantity }}</td>
+            <td>{{ r.set_code | upper }}</td>
+            <td>{{ r.collector_number }}</td>
+            <td>{{ r.finish }}</td>
+            <td>{{ r.location_name | safe_loc }}</td>
+            <td class="num">
+              {% if r.finish == 'foil' %}{{ r.price_usd_foil | usd }}
+              {% else %}{{ r.price_usd | usd }}{% endif %}
+            </td>
+            <td class="actions">
+              <button class="btn small"
+                      onclick="openEdit(this)"
+                      data-sid="{{ r.scryfall_id }}"
+                      data-finish="{{ r.finish }}"
+                      data-loc="{{ r.location_id }}"
+                      data-qty="{{ r.quantity }}"
+                      data-name="{{ r.name }}">Edit</button>
+              <form method="post" action="{{ url_for('collection_remove') }}" style="display:inline">
+                <input type="hidden" name="scryfall_id" value="{{ r.scryfall_id }}">
+                <input type="hidden" name="finish" value="{{ r.finish }}">
+                <input type="hidden" name="location_id" value="{{ r.location_id }}">
+                <input type="hidden" name="card_name" value="{{ r.name }}">
+                <input type="number" name="quantity" value="1" min="1" max="{{ r.quantity }}" style="width:55px">
+                <button class="btn small danger" type="submit"
+                        onclick="return confirm('Remove this many?')">Remove</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <p>
+        <a class="btn" href="{{ url_for('collection_add') }}?name={{ name | urlencode }}">+ Add another</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- Edit modal -->
+  <div id="edit-modal" class="modal" style="display:none">
+    <div class="modal-box">
+      <h3>Edit stack</h3>
+      <form method="post" action="{{ url_for('collection_edit') }}">
+        <input type="hidden" name="old_scryfall_id" id="edit-old-sid">
+        <input type="hidden" name="old_finish"       id="edit-old-finish">
+        <input type="hidden" name="old_location_id"  id="edit-old-loc">
+        <input type="hidden" name="card_name"        id="edit-card-name">
+
+        <label>Quantity
+          <input type="number" name="new_quantity" id="edit-qty" min="1" required>
+        </label>
+
+        <label>Finish
+          <select name="new_finish" id="edit-finish">
+            <option value="nonfoil">Nonfoil</option>
+            <option value="foil">Foil</option>
+          </select>
+        </label>
+
+        <label>Location
+          <select name="new_location_id" id="edit-loc">
+            {% for l in all_locations %}
+              <option value="{{ l.id }}">{{ l.name }}</option>
+            {% endfor %}
+          </select>
+        </label>
+
+        <label>Change printing (Scryfall ID)
+          <input type="text" name="new_scryfall_id" id="edit-new-sid"
+                 placeholder="Leave unchanged to keep current printing" style="width:100%">
+          <small class="muted">Only fill this in if you want to switch which printing this stack represents.
+          Find the ID on <a href="https://scryfall.com" target="_blank">Scryfall</a> → card page → "Copy ID".</small>
+        </label>
+
+        <div class="modal-actions">
+          <button class="btn primary" type="submit">Save</button>
+          <button class="btn" type="button" onclick="closeEdit()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+{% elif cached_only %}
+  <p class="empty">You don't own any copies. Known printings:</p>
+  <div class="printing-list">
+    {% for p in cached_only %}
+      <div class="printing-row">
+        {% if p.image_uri %}<img src="{{ p.image_uri }}" alt="">{% endif %}
+        <div>
+          <strong>{{ p.set_code | upper }} #{{ p.collector_number }}</strong> — {{ p.set_name }}<br>
+          <small>{{ p.price_usd | usd }} USD</small>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+  <p><a class="btn primary" href="{{ url_for('collection_add') }}?name={{ name | urlencode }}">+ Add to collection</a></p>
+{% endif %}
+
+<script>
+function openEdit(btn) {
+  var sid = btn.dataset.sid;
+  document.getElementById('edit-old-sid').value = sid;
+  document.getElementById('edit-new-sid').value = sid;
+  document.getElementById('edit-old-finish').value = btn.dataset.finish;
+  document.getElementById('edit-old-loc').value = btn.dataset.loc;
+  document.getElementById('edit-card-name').value = btn.dataset.name;
+  document.getElementById('edit-qty').value = btn.dataset.qty;
+  document.getElementById('edit-finish').value = btn.dataset.finish;
+  document.getElementById('edit-loc').value = btn.dataset.loc;
+  document.getElementById('edit-modal').style.display = 'flex';
+}
+function closeEdit() {
+  document.getElementById('edit-modal').style.display = 'none';
+}
+document.getElementById('edit-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeEdit();
+});
+</script>
+{% endblock %}

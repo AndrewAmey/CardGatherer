@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}Add card — Card Gatherer{% endblock %}
+{% block content %}
+<h1>Add a card</h1>
+
+<form class="filter-bar" method="get">
+  <input type="text" name="name" placeholder="Card name…" value="{{ name }}" autofocus>
+  <button class="btn primary" type="submit">Search Scryfall</button>
+</form>
+
+{% if error %}
+  <div class="flash flash-error">{{ error }}</div>
+{% endif %}
+
+{% if printings %}
+  <p class="summary">Found {{ printings | length }} printing(s) of <strong>{{ printings[0].name }}</strong>.</p>
+
+  <div class="refine-bar">
+    <span class="refine-label">Refine:</span>
+    <input type="text" id="filter-set" placeholder="Set code (e.g. MH3)" size="10" maxlength="6">
+    <input type="text" id="filter-number" placeholder="Card #" size="8">
+    <select id="filter-rarity">
+      <option value="">Any rarity</option>
+      <option value="mythic">Mythic</option>
+      <option value="rare">Rare</option>
+      <option value="uncommon">Uncommon</option>
+      <option value="common">Common</option>
+      <option value="special">Special</option>
+      <option value="bonus">Bonus</option>
+    </select>
+    <button type="button" class="btn small" id="filter-clear">Clear</button>
+    <span id="filter-count" class="muted small"></span>
+  </div>
+
+  <div class="printing-grid" id="printing-grid">
+    {% for p in printings %}
+      <form class="printing-card" method="post" action="{{ url_for('collection_add') }}"
+            data-set="{{ p.set_code | lower }}"
+            data-number="{{ p.collector_number | lower }}"
+            data-rarity="{{ (p.rarity or '') | lower }}">
+        {% if p.image_uri %}<img src="{{ p.image_uri }}" alt="" loading="lazy">{% endif %}
+        <div class="printing-meta">
+          <div class="printing-set-name">{{ p.set_name }}</div>
+          <div class="printing-set-line">
+            <span class="set-code">{{ p.set_code | upper }}</span>
+            <span class="muted">·</span>
+            <span>#{{ p.collector_number }}</span>
+            {% if p.rarity %}
+              <span class="muted">·</span>
+              <span class="rarity rarity-{{ p.rarity }}">{{ p.rarity }}</span>
+            {% endif %}
+            {% if p.released_at %}
+              <span class="muted">·</span>
+              <span class="muted">{{ p.released_at[:4] }}</span>
+            {% endif %}
+          </div>
+          {% if p.promo or p.variation or p.full_art or p.border_color == 'borderless' or p.lang != 'en' %}
+            <div class="printing-flags">
+              {% if p.promo %}<span class="flag flag-promo">promo</span>{% endif %}
+              {% if p.variation %}<span class="flag flag-variation">variant</span>{% endif %}
+              {% if p.full_art %}<span class="flag">full art</span>{% endif %}
+              {% if p.border_color == 'borderless' %}<span class="flag">borderless</span>{% endif %}
+              {% if p.lang and p.lang != 'en' %}<span class="flag">{{ p.lang | upper }}</span>{% endif %}
+            </div>
+          {% endif %}
+          <div class="printing-prices">
+            <span>{{ p.price_usd | usd }} nonfoil</span>
+            {% if p.price_usd_foil %}<span class="muted">/ {{ p.price_usd_foil | usd }} foil</span>{% endif %}
+          </div>
+        </div>
+        <input type="hidden" name="scryfall_id" value="{{ p.scryfall_id }}">
+        <input type="hidden" name="card_name" value="{{ p.name }}">
+        <div class="printing-actions">
+          <label>Qty <input type="number" name="quantity" value="1" min="1" style="width:60px"></label>
+          <label>
+            Finish
+            <select name="finish">
+              {% if not p.finishes or 'nonfoil' in p.finishes %}
+                <option value="nonfoil">Nonfoil</option>
+              {% endif %}
+              {% if not p.finishes or 'foil' in p.finishes %}
+                <option value="foil">Foil</option>
+              {% endif %}
+              {% if p.finishes and 'etched' in p.finishes %}
+                <option value="foil">Etched (stored as foil)</option>
+              {% endif %}
+            </select>
+          </label>
+          <label>
+            Location
+            <select name="location_id" required>
+              {% for l in locations %}
+                <option value="{{ l.id }}">{{ l.name }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <button class="btn primary small" type="submit">+ Add</button>
+        </div>
+      </form>
+    {% endfor %}
+  </div>
+
+  <script>
+  (function() {
+    var setInput = document.getElementById('filter-set');
+    var numInput = document.getElementById('filter-number');
+    var rarSelect = document.getElementById('filter-rarity');
+    var clearBtn = document.getElementById('filter-clear');
+    var counter = document.getElementById('filter-count');
+    var cards = document.querySelectorAll('#printing-grid .printing-card');
+    var total = cards.length;
+
+    function apply() {
+      var s = setInput.value.trim().toLowerCase();
+      var n = numInput.value.trim().toLowerCase();
+      var r = rarSelect.value;
+      var visible = 0;
+      cards.forEach(function(card) {
+        var matchSet = !s || card.dataset.set.indexOf(s) === 0;
+        var matchNum = !n || card.dataset.number === n;
+        var matchRar = !r || card.dataset.rarity === r;
+        var show = matchSet && matchNum && matchRar;
+        card.style.display = show ? '' : 'none';
+        if (show) visible++;
+      });
+      if (s || n || r) {
+        counter.textContent = visible + ' of ' + total + ' shown';
+      } else {
+        counter.textContent = '';
+      }
+    }
+
+    setInput.addEventListener('input', apply);
+    numInput.addEventListener('input', apply);
+    rarSelect.addEventListener('change', apply);
+    clearBtn.addEventListener('click', function() {
+      setInput.value = '';
+      numInput.value = '';
+      rarSelect.value = '';
+      apply();
+    });
+  })();
+  </script>
+{% elif name %}
+  <p class="empty">No cards found matching "{{ name }}".</p>
+{% endif %}
+{% endblock %}

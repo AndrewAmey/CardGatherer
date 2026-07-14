@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Locations — CardVault{% endblock %}
+{% block content %}
+<h1>Locations</h1>
+
+{% set kind_labels = {'box': 'Boxes', 'binder': 'Binders', 'deck_box': 'Deck Boxes', 'shelf': 'Shelves', 'other': 'Other'} %}
+{% set ns = namespace(current_kind=None, open=False) %}
+
+{% for l in locations %}
+  {% set this_kind = l.kind if l.kind in kind_labels else 'other' %}
+  {% if this_kind != ns.current_kind %}
+    {% if ns.open %}
+  </tbody>
+</table>
+    {% endif %}
+    {% set ns.current_kind = this_kind %}
+    {% set ns.open = True %}
+<h2 class="loc-group">{{ kind_labels[this_kind] }}</h2>
+<table class="data-table">
+  <thead>
+    <tr><th>Name</th><th class="num">Cards</th><th class="num">Value</th><th></th></tr>
+  </thead>
+  <tbody>
+  {% endif %}
+    <tr>
+      <td><a href="{{ url_for('location_detail', loc_id=l.id) }}">{{ l.name }}</a></td>
+      <td class="num">{{ l.total_cards }}</td>
+      <td class="num">{{ l.value | usd }}</td>
+      <td class="actions">
+        {% if l.id != 1 %}
+          <form method="post" action="{{ url_for('locations_delete', loc_id=l.id) }}" style="display:inline">
+            <button class="btn small danger" type="submit"
+                    onclick="return confirm('Delete {{ l.name }}? Cards will move to Unsorted.')">Delete</button>
+          </form>
+        {% else %}
+          <span class="muted small">protected</span>
+        {% endif %}
+      </td>
+    </tr>
+{% endfor %}
+{% if ns.open %}
+  </tbody>
+</table>
+{% endif %}
+
+<h2>Create a new location</h2>
+<form class="filter-bar" method="post" action="{{ url_for('locations_create') }}">
+  <input type="text" name="name" placeholder="e.g. DMU Box" required>
+  <select name="kind">
+    {% for k in kinds %}
+      <option value="{{ k }}" {% if k == 'box' %}selected{% endif %}>{{ k }}</option>
+    {% endfor %}
+  </select>
+  <button class="btn primary" type="submit">Create</button>
+</form>
+
+<h2>Backup &amp; Restore</h2>
+<p class="muted small">A backup is a full snapshot of the database — your collection, locations, price history, and saved treasure hunts all included in one file.</p>
+
+<div class="filter-bar">
+  <a class="btn primary" href="{{ url_for('locations_backup') }}">Download Backup</a>
+</div>
+
+<form class="big-form" method="post" action="{{ url_for('locations_restore') }}"
+      enctype="multipart/form-data"
+      onsubmit="return confirm('Restoring will replace your ENTIRE current collection with the contents of this backup file. A safety copy of what you have now will be saved first, but this cannot be undone from the app. Continue?')">
+  <p>
+    <label>Restore from backup file</label>
+    <input type="file" name="backupfile" accept=".db" required>
+  </p>
+  <p>
+    <button class="btn danger" type="submit">Restore</button>
+  </p>
+</form>
+
+<details class="help">
+  <summary>How backup &amp; restore works</summary>
+  <p><strong>Download Backup</strong> saves a snapshot of the whole database file — collection, locations, price history, and saved treasure hunts.</p>
+  <p><strong>Restore</strong> replaces everything currently in the app with what's in the backup file you choose. Before doing so, your current data is copied into the <code>data</code> folder (named <code>pre_restore_backup_...</code>) so you can recover it manually if needed.</p>
+</details>
+{% endblock %}

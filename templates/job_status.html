@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Working… — Card Gatherer{% endblock %}
+{% block content %}
+<h1>Working…</h1>
+
+<div id="job-status" data-job-id="{{ job_id }}" data-done-url="{{ done_url }}">
+  <p class="job-message">{{ job.message }}</p>
+  <progress id="job-progress" max="{{ job.total or 100 }}" value="{{ job.current }}"></progress>
+  <p><small id="job-counter">{{ job.current }} / {{ job.total }}</small></p>
+</div>
+
+<script>
+(function() {
+  var el = document.getElementById('job-status');
+  var jobId = el.dataset.jobId;
+  var doneUrl = el.dataset.doneUrl;
+  var pollUrl = '/job/' + jobId + '/json';
+
+  function tick() {
+    fetch(pollUrl).then(function(r) { return r.json(); }).then(function(data) {
+      document.querySelector('.job-message').textContent = data.message;
+      var prog = document.getElementById('job-progress');
+      prog.max = data.total || 100;
+      prog.value = data.current;
+      document.getElementById('job-counter').textContent =
+        data.current + ' / ' + data.total;
+      if (data.status === 'done' || data.status === 'error') {
+        if (data.status === 'done') {
+          setTimeout(function() { window.location.href = doneUrl; }, 1500);
+        } else {
+          document.querySelector('.job-message').classList.add('error');
+        }
+        return;
+      }
+      setTimeout(tick, 500);
+    });
+  }
+  setTimeout(tick, 300);
+})();
+</script>
+{% endblock %}

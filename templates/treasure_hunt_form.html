@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Treasure Hunt — Card Gatherer{% endblock %}
+{% block content %}
+<h1>Treasure Hunt</h1>
+
+{% if hunts %}
+<h2>Saved hunts</h2>
+<form class="filter-bar" method="get" id="open-hunt-form">
+  <select id="saved-hunt-select">
+    {% for h in hunts %}
+      <option value="{{ url_for('treasure_hunt_view', hunt_id=h.id) }}">
+        {{ h.title }} — {{ h.pulled_count }}/{{ h.total_count }} pulled{% if h.remaining_cards %}, {{ h.remaining_cards }} still needed{% endif %}
+      </option>
+    {% endfor %}
+  </select>
+  <button class="btn" type="button"
+          onclick="location.href=document.getElementById('saved-hunt-select').value">
+    Open
+  </button>
+</form>
+{% endif %}
+
+<h2>New hunt</h2>
+<p>Paste a list of cards you need. Get back a pull list grouped by location.
+   The hunt is saved automatically so you can come back to it mid-pull.</p>
+
+<form method="post" action="{{ url_for('treasure_hunt') }}">
+  <p class="filter-bar">
+    <input type="text" name="title" placeholder="Hunt name (optional — e.g. Spirits deck)" size="36">
+    <label class="checkbox-inline">
+      <input type="checkbox" name="include_decks" value="1">
+      Also search deck boxes
+    </label>
+  </p>
+  <textarea name="cards" rows="14" placeholder="4 Lightning Bolt&#10;2 Counterspell&#10;1 Jace, the Mind Sculptor&#10;&#10;// blank lines and // comments are ignored" autofocus></textarea>
+  <p>
+    <button class="btn primary" type="submit">Plan my hunt</button>
+  </p>
+</form>
+
+<details class="help">
+  <summary>Formatting tips</summary>
+  <ul>
+    <li><code>4 Lightning Bolt</code> or <code>4x Lightning Bolt</code></li>
+    <li><code>Lightning Bolt</code> alone counts as 1</li>
+    <li>Set/collector annotations like <code>4 Bolt (MH2) 123</code> are stripped</li>
+    <li>Duplicate entries get merged</li>
+    <li>Cards stored in deck boxes are skipped unless "Also search deck boxes" is checked</li>
+  </ul>
+</details>
+{% endblock %}

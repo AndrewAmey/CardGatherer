@@ -6,7 +6,7 @@ Manabox columns (as of the user's export):
   ManaBox ID, Scryfall ID, Purchase price, Misprint, Altered, Condition,
   Language, Purchase price currency, Added
 
-Per user spec, the following columns are IGNORED:
+Per spec, the following columns are IGNORED:
   Set name, Rarity, ManaBox ID, Purchase price, Misprint, Altered,
   Condition, Language, Purchase price currency, Added
 
